@@ -90,6 +90,7 @@ class Membership(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='memberships',
+        db_index=False,     # <- stop auto-indexing.Both (user, left_at) and the unique constraint cover it.
     )
 
     chatroom  = models.ForeignKey(
@@ -160,7 +161,10 @@ class Message(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     chatroom = models.ForeignKey(
-        ChatRoom, on_delete=models.CASCADE, related_name='messages',
+        ChatRoom,
+        on_delete=models.CASCADE,
+        related_name='messages',
+        db_index=False,         # The composite index below on Meta class covers it.
     )
 
     # Keep the message if the sender is deleted.
