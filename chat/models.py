@@ -65,6 +65,24 @@ class ChatRoom(models.Model):
         return self.title or f"{self.type}:{self.id}"
 
 
+    @classmethod
+    def get_or_create_dm(cls,user_a, user_b):
+        small, large = min(user_a.id, user_b.id), max(user_a.id, user_b.id)
+        dm_key = f"{small}-{large}"
+        room, created = cls.objects.get_or_create(
+            dm_key=dm_key,
+            defaults={'created_by':user_a, 'type':cls.RoomType.DIRECT}
+        )
+        if created:
+            Membership.objects.bulk_create([
+                Membership(user=user_a, chatroom=room, role=Membership.Role.MEMBER),
+                Membership(user=user_b, chatroom=room, role=Membership.Role.MEMBER),
+            ])
+
+        return room
+
+
+
 # Membership
 # Purpose - To define the role and permissions of a user in a group.
 # user-User FK
