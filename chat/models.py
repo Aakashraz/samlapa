@@ -166,6 +166,18 @@ class Membership(models.Model):
 # parent (for replies)-a self-referential FK-It points to another Message model
 # is_deleted-soft delete
 
+
+# To provide ALL messages even with the deleted one.
+class AllMessageManager(models.Manager):
+    pass
+
+
+# For a normal app to fetch the data WITHOUT showing deleted messages.
+class ActiveManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
+
+
 class Message(models.Model):
     """
         A single message in a room. Same model for DM and GROUP.
@@ -212,12 +224,18 @@ class Message(models.Model):
     # Soft delete. keep row, hide content on client.
     is_deleted = models.BooleanField(default=False)
 
+    # Custom manager for NORMAL APP and ADMIN
+    objects = ActiveManager()
+    all_objects = AllMessageManager()
+
     class Meta:
         ordering = ['created_at']
         indexes = [
             # The no. 1 query: fetch messages of a room in order.
             models.Index(fields=['chatroom', 'created_at']),
         ]
+        default_manager_name = 'objects'
+        base_manager_name = 'all_objects'
 
     def __str__(self):
         return f"msg:{self.id} in {self.chatroom_id}"
