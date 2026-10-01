@@ -65,6 +65,24 @@ class ChatRoom(models.Model):
         return self.title or f"{self.type}:{self.id}"
 
 
+    @classmethod
+    def get_or_create_dm(cls,user_a, user_b):
+        small, large = min(user_a.id, user_b.id), max(user_a.id, user_b.id)
+        dm_key = f"{small}-{large}"
+        room, created = cls.objects.get_or_create(
+            dm_key=dm_key,
+            defaults={'created_by':user_a, 'type':cls.RoomType.DIRECT}
+        )
+        if created:
+            Membership.objects.bulk_create([
+                Membership(user=user_a, chatroom=room, role=Membership.Role.MEMBER),
+                Membership(user=user_b, chatroom=room, role=Membership.Role.MEMBER),
+            ])
+
+        return room
+
+
+
 # Membership
 # Purpose - To define the role and permissions of a user in a group.
 # user-User FK
@@ -148,6 +166,18 @@ class Membership(models.Model):
 # parent (for replies)-a self-referential FK-It points to another Message model
 # is_deleted-soft delete
 
+
+# To provide ALL messages even with the deleted one.
+class AllMessageManager(models.Manager):
+    pass
+
+
+# For a normal app to fetch the data WITHOUT showing deleted messages.
+class ActiveManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
+
+
 class Message(models.Model):
     """
         A single message in a room. Same model for DM and GROUP.
@@ -194,12 +224,18 @@ class Message(models.Model):
     # Soft delete. keep row, hide content on client.
     is_deleted = models.BooleanField(default=False)
 
+    # Custom manager for NORMAL APP and ADMIN
+    objects = ActiveManager()
+    all_objects = AllMessageManager()
+
     class Meta:
         ordering = ['created_at']
         indexes = [
             # The no. 1 query: fetch messages of a room in order.
             models.Index(fields=['chatroom', 'created_at']),
         ]
+        default_manager_name = 'objects'
+        base_manager_name = 'all_objects'
 
     def __str__(self):
         return f"msg:{self.id} in {self.chatroom_id}"
