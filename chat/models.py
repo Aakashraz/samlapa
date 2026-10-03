@@ -167,13 +167,25 @@ class Membership(models.Model):
 # is_deleted-soft delete
 
 
-# To provide ALL messages even with the deleted one.
-class AllMessageManager(models.Manager):
+
+# To set the flag to True on delete() method when called using the Custom Manager.
+# NOTE: ChatRoom.delete() (and any queryset cascade) bypasses this method -
+# ----- this delete() override doesn't skip cascades — cascades skip your override.
+# ----- Django's Collector issues RAW SQL DELETE. Messages hard-deleted with their room.
+# ----- Soft-delete is a per-message action only.
+class MessageQuerySet(models.QuerySet):
+    # Returns only int not tuple (as hard delete() method would have returned)
+    def delete(self):
+        return self.update(is_deleted=True)
+
+
+# To provide ALL messages even with the deleted ones, WITH access to QuerySet methods.
+class AllMessageManager(models.Manager.from_queryset(MessageQuerySet)):
     pass
 
 
 # For a normal app to fetch the data WITHOUT showing deleted messages.
-class ActiveManager(models.Manager):
+class ActiveManager(models.Manager.from_queryset(MessageQuerySet)):
     def get_queryset(self):
         return super().get_queryset().filter(is_deleted=False)
 
@@ -224,9 +236,12 @@ class Message(models.Model):
     # Soft delete. keep row, hide content on client.
     is_deleted = models.BooleanField(default=False)
 
-    # Custom manager for NORMAL APP and ADMIN
-    objects = ActiveManager()
+    # OR, can use all_objects = models.Manager() -> Base Manager
     all_objects = AllMessageManager()
+    # Custom manager for NORMAL APP and ADMIN -> Default Manager
+    objects = ActiveManager()\
+    # Both managers now have access to MessageQuerySet methods (like .delete())
+
 
     class Meta:
         ordering = ['created_at']
@@ -239,3 +254,8 @@ class Message(models.Model):
 
     def __str__(self):
         return f"msg:{self.id} in {self.chatroom_id}"
+
+
+    # Message.objects.filter(id=m1.id).delete()
+    # Message.all_objects.filter(id=m1.id).delete()
+    # Re-deletes are no-ops and you can tell the user "already deleted" or "just deleted". For views layer - Worth Remembering
