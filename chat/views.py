@@ -1,12 +1,14 @@
 from django.shortcuts import render
 from rest_framework.generics import ListAPIView
 from rest_framework.exceptions import PermissionDenied, NotFound
+from rest_framework.permissions import IsAuthenticated
 
 from .models import ChatRoom, Membership, Message
 from .serializers import MessageSerializer
 
 
 
+# the view must be IsAuthenticated, and soon. Otherwise, the very first unauthenticated Android call causes a server error.
 class RoomMessageListView(ListAPIView):
     serializer_class = MessageSerializer
 
