@@ -36,3 +36,6 @@ class RoomMessageListView(ListAPIView):
 # unauthenticated requests will get 401 with a WWW-Authenticate: Bearer header — which is the correct,
 # standards-compliant answer for a token API. That’s a concrete benefit of switching, not just an
 # auth mechanism swap.
+
+# WWW-Authenticate: Bearer realm="api" on a 401. That’s your contract with the Android client.
+# --- without Username:Password and no JWT token
