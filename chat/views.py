@@ -11,6 +11,7 @@ from .serializers import MessageSerializer
 # the view must be IsAuthenticated, and soon. Otherwise, the very first unauthenticated Android call causes a server error.
 class RoomMessageListView(ListAPIView):
     serializer_class = MessageSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         room_id = self.kwargs['room_id']
@@ -28,3 +29,10 @@ class RoomMessageListView(ListAPIView):
 
 # The __ is just Django's separator. field__lookup=value. The lookup is one of: isnull, gt, gte, lt,
 # lte, contains, startswith, in, year, month, date, and more.
+
+
+# --------------------------------
+# JWTAuthentication.authenticate_header returns 'Bearer realm="api"'. So if you put JWT first in the list,
+# unauthenticated requests will get 401 with a WWW-Authenticate: Bearer header — which is the correct,
+# standards-compliant answer for a token API. That’s a concrete benefit of switching, not just an
+# auth mechanism swap.
