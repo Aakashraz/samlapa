@@ -42,6 +42,12 @@ class MessageSerializer(serializers.ModelSerializer):
         return data
 
 
+
+class MessageCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = ['content', 'message_type', 'parent_id']
+
 # --- NOTE ---
 # --- This is a different way of dealing with the model attributes: corresponding to the serializer's fields ---
 # When you serialize a message and want to include {id, username}:
