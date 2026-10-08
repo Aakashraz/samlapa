@@ -129,5 +129,17 @@ MAILERS = {
     },
 }
 
+
+
 # Setting AUTH_USER_MODEL to a custom user
 AUTH_USER_MODEL = 'users.User'
+
+
+# AUTHENTICATION CLASSES FOR REST_FRAMEWORK
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ),
+}
