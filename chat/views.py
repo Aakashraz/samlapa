@@ -1,10 +1,13 @@
 from django.shortcuts import render
+from rest_framework import status
 from rest_framework.generics import ListCreateAPIView
 from rest_framework.exceptions import PermissionDenied, NotFound
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from .models import ChatRoom, Membership, Message
 from .serializers import MessageSerializer, MessageCreateSerializer
+
 
 
 # the view must be IsAuthenticated, and soon. Otherwise, the very first unauthenticated Android call causes a server error.
@@ -18,18 +21,19 @@ class RoomMessageListView(ListCreateAPIView):
         qs = Message.all_objects.filter(chatroom_id=chatroom.id).select_related('sender').order_by('-created_at')[:50]
         return list(reversed(qs))
 
+
     def get_serializer_class(self):
         if self.request.method=='POST':
             return MessageCreateSerializer
         return MessageSerializer
 
+
     def create(self, request, *args, **kwargs):
         chatroom = self.get_room_and_check_membership()
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        # serializer.save()
-        # chatroom.messages.create(sender=request.user)
-
+        new_message = serializer.save(chatroom=chatroom, sender=request.user)
+        return Response(MessageSerializer(new_message).data, status=status.HTTP_201_CREATED)
 
 
     def get_room_and_check_membership(self):
