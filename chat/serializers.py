@@ -1,3 +1,5 @@
+from typing import Any
+
 from rest_framework import serializers
 from users.models import User
 from .models import Message
@@ -47,6 +49,14 @@ class MessageCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = ['content', 'message_type', 'parent_id']
+
+    def validate(self, attrs: Any) -> Any:
+        print(attrs)
+        if attrs.get('message_type', 'text') == 'text'  and  not attrs['content'].strip():
+            raise serializers.ValidationError({'content':'Content cannot be empty'})
+
+        return attrs
+
 
 # --- NOTE ---
 # --- This is a different way of dealing with the model attributes: corresponding to the serializer's fields ---
