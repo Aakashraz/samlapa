@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from rest_framework import status
+from rest_framework import status, pagination
 from rest_framework.generics import ListCreateAPIView
 from rest_framework.exceptions import PermissionDenied, NotFound
 from rest_framework.permissions import IsAuthenticated
@@ -10,16 +10,21 @@ from .serializers import MessageSerializer, MessageCreateSerializer
 
 
 
+# CursorPagination Subclassing
+class MessageCursorPagination(pagination.CursorPagination):
+    page_size = 50
+    ordering = ['-created_at','id']
+
 # the view must be IsAuthenticated, and soon. Otherwise, the very first unauthenticated Android call causes a server error.
 class RoomMessageListView(ListCreateAPIView):
     # serializer_class = MessageSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = MessageCursorPagination
 
     def get_queryset(self):
         chatroom = self.get_room_and_check_membership()
-        # To fetch the last 50 messages from a chatroom -- needed reversed order.
-        qs = Message.all_objects.filter(chatroom_id=chatroom.id).select_related('sender').order_by('-created_at')[:50]
-        return list(reversed(qs))
+        qs = Message.all_objects.filter(chatroom_id=chatroom.id).select_related('sender')
+        return qs
 
 
     def get_serializer_class(self):
