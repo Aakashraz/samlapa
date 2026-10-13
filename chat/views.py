@@ -4,11 +4,17 @@ from rest_framework.generics import ListCreateAPIView
 from rest_framework.exceptions import PermissionDenied, NotFound
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 from .models import ChatRoom, Membership, Message
 from .serializers import MessageSerializer, MessageCreateSerializer
+from .services import room_group_name
+import logging
 
 
+
+logger = logging.getLogger(__name__)
 
 # CursorPagination Subclassing
 class MessageCursorPagination(pagination.CursorPagination):
@@ -38,7 +44,21 @@ class RoomMessageListView(ListCreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         new_message = serializer.save(chatroom=chatroom, sender=request.user)
-        return Response(MessageSerializer(new_message).data, status=status.HTTP_201_CREATED)
+        read_data = MessageSerializer(new_message).data
+
+        channel_layer = get_channel_layer()
+        try:
+            async_to_sync(channel_layer.group_send)(
+                room_group_name(chatroom.id),
+                {
+                    "type": "chat.message",
+                    "message": read_data,
+                },
+            )
+        except Exception:
+            # Log the exact error traceback silently without crashing your app
+            logger.exception("Error sending message to chatroom %s", chatroom.id)
+        return Response(read_data, status=status.HTTP_201_CREATED)
 
 
     def get_room_and_check_membership(self):
