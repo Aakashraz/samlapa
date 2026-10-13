@@ -152,7 +152,10 @@ CHANNEL_LAYERS = {
     'default': {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [('127.0.0.1', 6379)],
+            "hosts": [{"address": "redis://127.0.0.1:6379", "socket_timeout": 15}],
+            # Due to Timeout Error:
+            # it preserves the blocking behavior (15 > 5, so the BZPOPMIN still completes normally), and
+            # it gives you a safety net if Redis dies.
         }
     }
 }
