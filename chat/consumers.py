@@ -40,3 +40,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
     # disconnect(): cleanup. group_discard so no dead channels remain in the group.
     async def disconnect(self, code):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
+
+
+
+# Honest gap: the membership check only runs at connect time. If Bob is removed from the room while his
+# connection is open, he stays in the Redis group and keeps receiving messages until he disconnects.
+# Note it down, because a “remove member” feature will need to call group_discard or force a disconnect.
+
+# FOR your A plan:
+# Add this to the Android design: on every WebSocket (re)connect, run the catch-up fetch. Without it,
+# every dropped connection silently loses messages, and your server-side logging decision from earlier
+# only stays safe because of this fetch.

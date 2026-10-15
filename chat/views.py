@@ -57,7 +57,7 @@ class RoomMessageListView(ListCreateAPIView):
             )
         except Exception:
             # Log the exact error traceback silently without crashing your app
-            logger.exception("Error sending message to chatroom %s", chatroom.id)
+            logger.exception("Error sending message to chatroom %s --------", chatroom.id)
         return Response(read_data, status=status.HTTP_201_CREATED)
 
 
